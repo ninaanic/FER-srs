@@ -1,0 +1,36 @@
+1. Dodavanje "anti-spoofing" pravila
+    $IPT -A INPUT -i eth0 -s 203.0.113.0/24 -m state --state NEW -j DROP
+        da se onemogći pristup na eth0 mrežama koje sen lažno predstave s adresomo DMZ-a
+    $IPT -A INPUT -i eth0 -s 10.0.0.0/24 -m state --state NEW -j DROP
+        da se onemogći pristup na eth0 mrežama koje sen lažno predstave s adresomo LAN-a
+
+2. Omogućiti računalima iz lokalne mreže (LAN) da imaju neograničen pristup poslužiteljima u DMZ i Internetu
+    $IPT -A FORWARD -i eth1 -o eth2 -m state --state NEW,ESTABLISHED -j ACCEPT 
+        da se onemogći pristup iz LAN-a u DMZ
+    $IPT -A FORWARD -i eth1 -o eth0 -m state --state NEW,ESTABLISHED -j ACCEPT
+        da se onemogći pristup iz LAN-a na Internetu
+
+3. Omogućiti iz vanjske mreže (Interneta) pristup poslužitelju server u DMZ korištenjem protokola SSH (tcp port 22) i DNS (udp i tcp port 53)
+    $IPT--A FORWARD -i eth0 -o eth2 -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+         da se onemogći pristup iz Internet-a u DMZ pomoću tcp port 22
+    $IPT -A FORWARD -i eth0 -o eth2 -p tcp --dport 53 -m state --state NEW,ESTABLISHED -j ACCEPT
+        da se onemogći pristup iz Internet-a u DMZ pomoću tcp port 53
+    $IPT -A FORWARD -i eth0 -o eth2 -p udp --dport 53 -m state --state NEW,ESTABLISHED -j ACCEPT
+        da se onemogći pristup iz Internet-a u DMZ pomoću udp port 22
+
+4. Omogućiti da je pristup iz vanjske mreže i DMZ u lokalnu LAN mrežu zabranjen, te omogućiti pristup poslužitelju host (u LAN-u) s poslužitelja server (u DMZ) korištenjem protokola SSH
+Prvi dio zahtjeva je zadovoljen sa '$IPT -P FORWARD DROP':
+    $IPT -A FORWARD -s 203.0.113.1/24 -d 10.0.0.11/24 -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+        da se omogući pristup poslužitelju host (10.0.0.11/24) s poslužitelja server (203.0.113.1/24) korištenjem protokola SSH
+
+5. Omogućiti da je s poslužitelja server dozvoljen pristup DNS poslužiteljima u Internetu (UDP i TCP port 53)
+    $IPT -A FORWARD -i eth2 -o eth0 -p tcp --dport 53 -m state --state NEW,ESTABLISHED -j ACCEPT
+        da se onemogći pristup sa servera u DMZ na Internet pomoću tcp port 53
+    $IPT -A FORWARD -i eth2 -o eth0 -p udp --dport 53 -m state --state NEW,ESTABLISHED -j ACCEPT
+        da se onemogći pristup sa servera u DMZ na Internet pomoću udp port 53
+
+6. Omogućiti da je SSH pristup vatrozidu firewall dozvoljen samo s računala admin (LAN)
+    $IPT -A INPUT -i eth1 -p tcp -s 10.0.0.10 --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+        da se omogući slanje paketa s admin računala baš na vatrozid
+    $IPT -A OUTPUT -o eth1 -p tcp -s --sport 22 -m state --state ESTABLISHED -j ACCEPT
+        da se omogući slanje paketa s admin računala baš sa vatrozida

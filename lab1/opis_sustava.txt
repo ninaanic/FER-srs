@@ -1,0 +1,24 @@
+Podaci se spremaju na disk u .bin file te su zaštićeni master passwordom koji se unosi pomoću naredbe '--init'.
+Prilikom pokretanja programa naredbom '--init nekiMasterPassword' iz unesenog master passworda pretvorenog u bajtove i random generiranog salt-a dobiva se privatni ključ pomoću funkcije za derivaciju ključa (PBKDF2).
+Pomoću tog privatnog ključa i AES-a (Advanced Encryption Standard) u GCM modu dobivamo algoritam cipher kojim možemo sigurno eknriptirati podatke.
+Korištenjem 'cipher.encrypt_and_digest(data)' dobivamo naš kriptirani podatak (cipher_data) i tag kojim provjeravamo integritet kriptiranih podataka.
+Pošto prilikom izvođenja naredbe '--init' imamo samo master password a ne i neke podatke koje trebamo spremiti na disk, prilikom enkripcije generiramo random string (secret string) koji kriptiramo kako bi, ako uspijemo dekriptirani taj podataka, bili sigurni da:
+    1. imamo dobar master password (ako nemamo, dobivamo error)
+    2. nitko nije mijenjao naše podatke (ako je, dobivamo error)
+Nakon enkripcije u naš file zapisujemo stvari koje će nam trebati pri dekripciji i one smiju biti javne (salt, nonce, tag, duljina secret stringa) te kriptirani podataka (cipher_data).
+Ako radimo enkripciju podataka koji osim secret stringa u sebi sadrži i parove adresa;lozinka onda je postupak isti samo što se svaki puta pri enkripciji na početak podatka koji će biti kriptiran dodaje novi random secret string kako bi mogli provjeriti integritet kasnije.
+
+Prilikom dekripcije iz file-a čitamo neenkriptirane podatke (salt, nonce, tag, duljina secret stringa) te kriptirani podataka (cipher_data).
+Pomoću salt-a i master passworda koji smo unijeli naredbom '--put' ili '--get' i pročitanog salt-a dobivamo privatni ključ pomoću PBKDF2.
+Pomoću tog privatnog ključ i AES-a (Advanced Encryption Standard) u GCM modu i pročitanog nonce-a dobivamo algoritam cipher kojim možemo sigurno dekriptirati podatke.
+Dekriptiramo kriptirani podatak pomoću 'cipher.decrypt_and_verify(cipher_data, tag)' te ova funkcija vraća error ako:
+    1. je master password krivi (jer onda cipher neće biti dobar tj. privatni ključ od kojeg se dobije cipher neće biti dobar)
+    2. je netko mijenjao podatke (jer onda tag neće biti isti)
+
+Sigurnosni zahtjevi: 
+    1. Povjerljivost zaporki: napadač ne može odrediti nikakve informacije o zaporkama, čak niti njihovu duljinu, čak ni jesu li zaporke za dvije adrese jednake, čak ni je li nova zaporka jednaka staroj kada se promijeni.
+        -> zadovoljeno jer napadač bez ispravnog master passworda ne može pročitati kriptirane podatke tj. dekriptirati ih, a iz kriptiranih podataka ne može saznati nikakve informacije o zaporkama 
+    2. Povjerljivost adresa: napadač ne može odrediti nikakve informacije o adresama, osim da zna koliko se različitih adresa nalazi u bazi.
+        -> također zadovoljeno jer bez master passworda ne može dekriptirati podatke, a kriptirane podatke ne može čitati (tj. teoretski može ali mu ništa ne znače jer to nisu pravi podatci nego kriptiran)
+    3. Integritet adresa i zaporki: nije moguće da korisnik dobije od alata zaporku za određenu adresu, ako prethodno nije unio točno tu zaporku za točno tu adresu. Obratite pažnju na napad zamijene: napadač ne smije moći zamijeniti zaporku određene adrese zaporkom neke druge adrese.
+        -> zadovoljeno zbog gore navedenih funkcija koje vraćaju error ako integritet kriptiranih podataka nije očuvan 

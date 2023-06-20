@@ -1,0 +1,42 @@
+Prilikom svakog pokretanja shell skripte inicijalizira se nova baza (file u .txt obliku).
+U taj file se u svaki redak spremaju podatci o jednom useru u obliku: username hash_password salt te je između njih ascii znak 29 (group separator).
+Sustav se sastoji od dva programa: usermgmt.py i login.py.
+
+
+usermgmt.py
+Ovo je program kojim se mogu koristiti samo admini sustava. 
+Oni imaju mogućnosti dodavanja novih usera u bazu, brisanja postojećih, promjene passworda usera te mogu obavijestiti usera da sam promijeni password. 
+Dodavanje usera: 
+-	Prilikom dodavanja usera očekuje se unos passworda duljeg od 10 znakova i njegovo ponavljanje. 
+-	Ako je gore navedeni uvjet zadovoljen, generira se random salt duljine 16 bajtova, password se pretvara u bajtove te se to dvoje zajedno hashira PBKDF2 funkcijom sa 1,000,000 iteracija i hmac hash modulom SHA512. Na taj način dobivamo hashirani password koji spremamo u bazu uz username i salt u izvornom obliku te ih odvajamo ascii znakom 29.
+-	Na ovaj način osigurali smo se od napada grubom silom (10+ znakova u passwordu = 93 na 10 mogućih kombinacija, ako pogađamo 1000komb/sec, da sve probamo trebalo bi nam oko 920 milijuna godina).
+-	PBKDF2 funkcija za derivaciju ključa je korištena jer sadrži veliki broj iteracija te je dovoljno dobra za izradu password hasha. 
+-	User koji već postoji u bazi neće se ponovno dodati.
+Promjena passworda usera:
+-	Admin ima mogućnost promjene passworda za usera na način da mora upisati novi password i ponoviti ga (također provjera duljine i podudaranja).
+-	Ako su oba passworda ispravna briše se stari user i dodaje se isti taj user samo s novim passwordom (postupak kao kod dodavanja usera).
+Force password:
+-	Admin može zatražiti korisnika da sam promijeni password pri sljedećem loginu i to se obilježava tako da se na kraj zapisa koji je u retku za odabranog usera dopiše zastavica '1' koja će se provjeravati prilikom logina i ako ju korisnika ima bit će prisiljen na promjenu trenutnog passworda. 
+Brisanje usera:
+-	Admin može bilo kojeg usera obrisati iz baze.
+-	Za ovaj postupak nije potrebno unositi password. 
+
+Kod unosa passworda postoji ograničenje samo na duljinu passworda, ne provjerava se je li password u dictionary-u i u bazi kompormitiranih passworda i je li novi password jednak kao stari.
+Za stvarni sustav bi ovo trebalo dodati, ali za ovu vježbu nije nužno. 
+2 različita usera smiju imati isti password jer za svakog usera spremamo novi random salt pa hash-evi istih pass + različitih saltova neće biti isti. 
+Napadač ništa ne može saznati o duljini izvornih passworda jer su hashevi za npr. password od 10 znakova i za password od 20 jednako dugački. 
+
+login.py
+Ovaj program namijenjen je userima koji se žele ulogirati u sustav. 
+Oni se mogu samo ulogirati i promijeniti password ako je admin to tražio od njih, a nemogu se sami kreirati, brisati niti mijenjati password kad oni to žele. 
+Login usera:
+-	User se može ulogirati u sustav samo ako upiše ispravan password (koji mu je admin postavi ili ga je sam postavio kada je admin to od njega tražio).
+-	Nakon što user unese password koji misli da je ispravan program uspoređuje zapisani hash passworda (zapisan je u bazi u retku za trenutnog usera) i novo izračunati hash pomoću passworda koji je user unio i salt-a iz baze (također zapisan u bazi u retku za trenutnog usera)
+-	Novi hash računa se isto kao i stari, pomoću PBKDF2, passworda u bajtovima te salta koji je bio jednaki kao i za stari password.
+-	Ako se hash-evi podudaraju password je ispravan te se korisnik uspješno ulogira u sustav.
+-	Ako hash-evi nisu ispravni, korisničko ime ili password nisu jednaki te se korisnika o tome obavještava. 
+Promjena passworda usera koju je zatražio admin:
+-	Nakon što je admin zatražio da user sam promijeni password, na kraj retka  u kojem je njegov username dopisana je zastavica '1'.
+-	Ako user koji se pokušava ulogirati u sustav ima tu zastavicu, od njega će se očekivati da unese stari password  te ako je on ispravan (hash-evi se podudaraju) morati će unijeti novi password i potvrditi ga.
+-	Ako su zadovoljni zahtjevi (novi password dulji od 10 znakova te novi i ponovljeni password jednaki) user se ulogirava u sustav.
+-	Ako neki od zahtjeva nije zadovoljen, sustav javlja grešku te se usera ne ulogirava u sustav. 
